@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://manthanank.github.io/uses/sitemap.xml
+
+# Crawl delay (optional - helps prevent overwhelming your server)
+Crawl-delay: 1
+
+# Disallow specific paths if needed in the future
+# Disallow: /admin/
+# Disallow: /private/ 
