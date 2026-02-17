@@ -1,0 +1,76 @@
+{
+    "categories": [
+        {
+            "id": "development",
+            "title": "💻 Development",
+            "items": [
+                {
+                    "title": "Editor",
+                    "description": "VS Code with custom extensions"
+                },
+                {
+                    "title": "Terminal",
+                    "description": "Windows Terminal with PowerShell"
+                },
+                {
+                    "title": "Browser",
+                    "description": "Chrome for development, Firefox for browsing"
+                }
+            ]
+        },
+        {
+            "id": "tools",
+            "title": "🛠️ Tools",
+            "items": [
+                {
+                    "title": "Version Control",
+                    "description": "Git with GitHub"
+                },
+                {
+                    "title": "Package Manager",
+                    "description": "npm, yarn, and pnpm"
+                },
+                {
+                    "title": "Design",
+                    "description": "Figma for UI/UX design"
+                }
+            ]
+        },
+        {
+            "id": "apps",
+            "title": "📱 Apps",
+            "items": [
+                {
+                    "title": "Communication",
+                    "description": "Slack, Discord, and Microsoft Teams"
+                },
+                {
+                    "title": "Productivity",
+                    "description": "Notion for notes and project management"
+                },
+                {
+                    "title": "Music",
+                    "description": "Spotify for music and podcasts"
+                }
+            ]
+        },
+        {
+            "id": "hardware",
+            "title": "🖥️ Hardware",
+            "items": [
+                {
+                    "title": "Computer",
+                    "description": "Custom built PC with Windows 10"
+                },
+                {
+                    "title": "Monitor",
+                    "description": "Dual 27\" monitors"
+                },
+                {
+                    "title": "Keyboard",
+                    "description": "Mechanical keyboard with Cherry MX switches"
+                }
+            ]
+        }
+    ]
+}

@@ -1,265 +1,225 @@
 // Theme management
 let currentTheme = localStorage.getItem('theme') || 'light';
 
-// Apply theme on page load
 function applyTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
     currentTheme = theme;
     localStorage.setItem('theme', theme);
 }
 
-// Initialize theme
 applyTheme(currentTheme);
 
-// Wait for DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', function() {
     
-    // Theme toggle functionality
+    // Theme toggle
     const themeToggle = document.getElementById('themeToggle');
-    
     if (themeToggle) {
         themeToggle.addEventListener('click', function() {
-            try {
-                const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-                applyTheme(newTheme);
-                
-                // Add a subtle animation to the toggle button
-                this.style.transform = 'scale(0.9) rotate(180deg)';
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            applyTheme(newTheme);
+            this.style.transform = 'scale(0.9) rotate(180deg)';
+            setTimeout(() => { this.style.transform = 'scale(1) rotate(0deg)'; }, 150);
+        });
+    }
+
+    // Share functionality
+    const shareBtn = document.getElementById('shareBtn');
+    if (shareBtn) {
+        shareBtn.addEventListener('click', async () => {
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: 'My Setup - What I Use',
+                        text: 'Check out my tools, apps, and hardware setup!',
+                        url: window.location.href,
+                    });
+                } catch (err) {
+                    console.error('Error sharing:', err);
+                }
+            } else {
+                // Fallback: Copy to clipboard
+                navigator.clipboard.writeText(window.location.href);
+                const originalText = shareBtn.querySelector('span').textContent;
+                shareBtn.querySelector('span').textContent = 'Link Copied!';
                 setTimeout(() => {
-                    this.style.transform = 'scale(1) rotate(0deg)';
-                }, 150);
-            } catch (error) {
-                console.error('Error toggling theme:', error);
+                    shareBtn.querySelector('span').textContent = originalText;
+                }, 2000);
             }
         });
     }
-    
-    // Add smooth scroll behavior for anchor links
-    const links = document.querySelectorAll('a[href^="#"]');
-    links.forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            const targetId = this.getAttribute('href');
-            const targetElement = document.querySelector(targetId);
-            
-            if (targetElement) {
-                targetElement.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start'
-                });
-            }
-        });
-    });
 
-    // Add intersection observer for fade-in animations
-    const observerOptions = {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
-    };
-
-    const observer = new IntersectionObserver(function(entries) {
+    // Intersection Observer for animations
+    const observerOptions = { threshold: 0.1, rootMargin: '0px 0px -50px 0px' };
+    const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
-                entry.target.style.opacity = '1';
-                entry.target.style.transform = 'translateY(0)';
+                entry.target.classList.add('visible');
+                observer.unobserve(entry.target);
             }
         });
     }, observerOptions);
 
-    // Observe all items for animation
-    const items = document.querySelectorAll('.item');
-    if (items.length > 0) {
-        items.forEach(item => {
-            item.style.opacity = '0';
-            item.style.transform = 'translateY(20px)';
-            item.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-            observer.observe(item);
-        });
-    }
+    // Initial Search Setup (placeholder, will be fully initialized after data load)
+    let searchInput;
 
-    // Add click effect to items
-    if (items.length > 0) {
-        items.forEach(item => {
-            // Click effect
-            item.addEventListener('click', function() {
-                this.style.transform = 'scale(0.98)';
-                setTimeout(() => {
-                    this.style.transform = 'translateY(-3px)';
-                }, 150);
-            });
+    // Fetch and Render Data
+    fetch('data.json')
+        .then(response => response.json())
+        .then(data => {
+            renderContent(data);
+            initSearch();
+            updateCopyright();
+        })
+        .catch(err => console.error('Error loading tools:', err));
+
+    function renderContent(data) {
+        const container = document.getElementById('categoryContainer');
+        if (!container) return;
+
+        container.innerHTML = ''; // Clear loading state
+
+        data.categories.forEach((category, catIndex) => {
+            const section = document.createElement('section');
+            section.className = 'category';
+            section.style.animationDelay = `${catIndex * 0.1}s`;
             
-            // Keyboard navigation
-            item.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    this.style.transform = 'scale(0.98)';
-                    setTimeout(() => {
-                        this.style.transform = 'translateY(-3px)';
-                    }, 150);
-                }
+            section.innerHTML = `
+                <h2 class="category-title">${category.title}</h2>
+                <div class="items-grid"></div>
+            `;
+
+            const grid = section.querySelector('.items-grid');
+            category.items.forEach((item, itemIndex) => {
+                const itemEl = document.createElement('div');
+                itemEl.className = 'item';
+                itemEl.tabIndex = 0;
+                itemEl.setAttribute('role', 'button');
+                itemEl.setAttribute('aria-label', `${item.title} details`);
+                itemEl.style.animationDelay = `${(itemIndex * 0.1) + 0.2}s`;
+                
+                itemEl.innerHTML = `
+                    <h3 class="item-title">${item.title}</h3>
+                    <p class="item-description">${item.description}</p>
+                    <div class="item-glint"></div>
+                `;
+
+                // Add 3D Tilt Effect
+                addItemInteractions(itemEl);
+                
+                grid.appendChild(itemEl);
+                observer.observe(itemEl);
             });
+
+            container.appendChild(section);
+            observer.observe(section);
         });
+
+        // Initialize Typewriter after content load
+        initTypewriter();
     }
 
-    // Add parallax effect to header
-    window.addEventListener('scroll', function() {
-        const scrolled = window.pageYOffset;
-        const header = document.querySelector('.header');
-        const rate = scrolled * -0.5;
-        
-        if (header) {
-            header.style.transform = `translateY(${rate}px)`;
-        }
-    });
+    function addItemInteractions(item) {
+        item.addEventListener('mousemove', function(e) {
+            const rect = this.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const rotateX = (y - rect.height / 2) / 10;
+            const rotateY = (rect.width / 2 - x) / 10;
 
-    // Add typing effect to title
-    const title = document.querySelector('.title');
-    if (title) {
-        const originalText = title.textContent;
-        title.textContent = '';
-        title.style.borderRight = '2px solid #667eea';
-        
-        let i = 0;
-        const typeWriter = () => {
-            if (i < originalText.length) {
-                title.textContent += originalText.charAt(i);
-                i++;
-                setTimeout(typeWriter, 100);
-            } else {
-                title.style.borderRight = 'none';
-            }
-        };
-        
-        // Start typing effect after a short delay
-        setTimeout(typeWriter, 500);
+            this.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.02) translateY(-5px)`;
+            this.style.setProperty('--x', `${(x / rect.width) * 100}%`);
+            this.style.setProperty('--y', `${(y / rect.height) * 100}%`);
+        });
+
+        item.addEventListener('mouseleave', function() {
+            this.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale(1) translateY(0)';
+        });
+
+        item.addEventListener('mousedown', function() { this.style.transform += ' scale(0.98)'; });
+        item.addEventListener('mouseup', function() { this.style.transform = this.style.transform.replace(' scale(0.98)', ''); });
     }
 
-    // Add search functionality (if needed in the future)
-    function addSearchFunctionality() {
-        const searchInput = document.createElement('input');
-        searchInput.type = 'text';
-        searchInput.placeholder = 'Search items...';
-        searchInput.className = 'search-input';
-        searchInput.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 25px;
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(10px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-            z-index: 1000;
-            font-family: inherit;
-            font-size: 14px;
-            transition: all 0.3s ease;
+    function initSearch() {
+        const headerContent = document.querySelector('.header .header-content');
+        if (!headerContent || document.querySelector('.search-container')) return;
+
+        const searchContainer = document.createElement('div');
+        searchContainer.className = 'search-container';
+        searchContainer.innerHTML = `
+            <div class="search-input-wrapper">
+                <input type="text" placeholder="Search tools..." class="search-input" id="searchInput">
+                <kbd class="search-kbd">/</kbd>
+            </div>
         `;
 
-        searchInput.addEventListener('focus', function() {
-            this.style.transform = 'scale(1.05)';
-            this.style.boxShadow = '0 10px 25px rgba(0, 0, 0, 0.15)';
-        });
+        const themeToggle = document.getElementById('themeToggle');
+        themeToggle.parentNode.insertBefore(searchContainer, themeToggle);
 
-        searchInput.addEventListener('blur', function() {
-            this.style.transform = 'scale(1)';
-            this.style.boxShadow = '0 5px 15px rgba(0, 0, 0, 0.1)';
-        });
-
+        searchInput = document.getElementById('searchInput');
         searchInput.addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase();
-            const allItems = document.querySelectorAll('.item');
-            
-            allItems.forEach(item => {
-                const title = item.querySelector('.item-title').textContent.toLowerCase();
-                const description = item.querySelector('.item-description').textContent.toLowerCase();
-                
-                if (title.includes(searchTerm) || description.includes(searchTerm)) {
+            const term = this.value.toLowerCase();
+            const items = document.querySelectorAll('.item');
+            const categories = document.querySelectorAll('.category');
+
+            items.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                if (text.includes(term)) {
                     item.style.display = 'block';
                     item.style.opacity = '1';
                 } else {
-                    item.style.opacity = '0.3';
+                    item.style.display = 'none';
+                    item.style.opacity = '0';
                 }
+            });
+
+            categories.forEach(cat => {
+                const hasVisible = cat.querySelectorAll('.item[style*="display: block"]').length > 0;
+                cat.style.display = (hasVisible || term === '') ? 'block' : 'none';
             });
         });
 
-        document.body.appendChild(searchInput);
-    }
-
-    // Uncomment the line below to enable search functionality
-    // addSearchFunctionality();
-
-    // Add keyboard shortcuts
-    document.addEventListener('keydown', function(e) {
-        // Ctrl/Cmd + K to focus search (if enabled)
-        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-            e.preventDefault();
-            const searchInput = document.querySelector('.search-input');
-            if (searchInput) {
-                searchInput.focus();
+        document.addEventListener('keydown', (e) => {
+            if (e.key === '/' || ((e.ctrlKey || e.metaKey) && e.key === 'k')) {
+                if (document.activeElement !== searchInput) {
+                    e.preventDefault();
+                    searchInput.focus();
+                }
             }
-        }
-        
-        // Escape to clear search
-        if (e.key === 'Escape') {
-            const searchInput = document.querySelector('.search-input');
-            if (searchInput) {
+            if (e.key === 'Escape' && document.activeElement === searchInput) {
                 searchInput.value = '';
                 searchInput.dispatchEvent(new Event('input'));
                 searchInput.blur();
             }
-        }
-    });
-
-    // Add loading animation
-    window.addEventListener('load', function() {
-        // Ensure body is visible initially
-        document.body.style.opacity = '1';
-        document.body.style.transition = 'opacity 0.5s ease';
-        
-        // Add a subtle fade-in effect
-        document.body.style.opacity = '0';
-        setTimeout(() => {
-            document.body.style.opacity = '1';
-        }, 50);
-    });
-
-    // Add smooth hover effects for category titles
-    const categoryTitles = document.querySelectorAll('.category-title');
-    if (categoryTitles.length > 0) {
-        categoryTitles.forEach(title => {
-            title.addEventListener('mouseenter', function() {
-                this.style.transform = 'scale(1.02)';
-                this.style.transition = 'transform 0.3s ease';
-            });
-            
-            title.addEventListener('mouseleave', function() {
-                this.style.transform = 'scale(1)';
-            });
         });
     }
 
-    // Update copyright year dynamically
-    const yearElement = document.getElementById('currentYear');
-    if (yearElement) {
-        yearElement.textContent = new Date().getFullYear();
+    function initTypewriter() {
+        const title = document.querySelector('.title');
+        if (title && !title.getAttribute('data-typed')) {
+            const text = title.textContent;
+            title.textContent = '';
+            title.setAttribute('data-typed', 'true');
+            let i = 0;
+            const type = () => {
+                if (i < text.length) {
+                    title.textContent += text.charAt(i);
+                    i++;
+                    setTimeout(type, 100);
+                }
+            };
+            setTimeout(type, 500);
+        }
     }
 
-    // Console log for fun
-    console.log('🚀 Uses website loaded successfully!');
-    console.log('🌙 Dark/Light mode enabled!');
-    console.log('💡 Tip: You can customize the items in the HTML file to match your actual setup.');
+    function updateCopyright() {
+        const yearEl = document.getElementById('currentYear');
+        if (yearEl) yearEl.textContent = new Date().getFullYear();
+    }
 });
 
-// Service Worker Registration for PWA functionality
+// PWA Service Worker
 if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function() {
-        navigator.serviceWorker.register('./service-worker.js')
-            .then(function(registration) {
-                console.log('✅ Service Worker registered successfully:', registration.scope);
-            })
-            .catch(function(error) {
-                console.log('❌ Service Worker registration failed:', error);
-            });
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js').catch(err => console.error(err));
     });
-} 
+}
